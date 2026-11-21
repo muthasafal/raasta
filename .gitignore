@@ -1,0 +1,17 @@
+node_modules/
+dist/
+.wrangler/
+.env
+.env.*
+!.env.example
+.dev.vars
+qa/browser/tmp/
+qa/browser/*.json
+coverage/
+playwright-report/
+test-results/
+*.log
+# Local editor and assistant files
+.claude/
+CLAUDE.md
+.impeccable/
