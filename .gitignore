@@ -16,6 +16,7 @@ qa/browser/test-results.json
 
 # Private pitch script (not published)
 docs/PITCH_SCRIPT.md
+docs/PITCH.md
 # Local editor and assistant files
 .claude/
 CLAUDE.md
