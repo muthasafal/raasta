@@ -233,4 +233,10 @@ docs/            Product, architecture, design, security, and deployment
 
 ---
 
+## AI assistance
+
+AI tools were used as assistance during development. They did not design or build Raasta on their own; the idea, design decisions and final code were directed and reviewed by me.
+
+---
+
 **Every person deserves to know which door to knock on.**
