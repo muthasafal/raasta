@@ -11,6 +11,8 @@ coverage/
 playwright-report/
 test-results/
 *.log
+qa/ollama-intake-report.json
+qa/browser/test-results.json
 # Local editor and assistant files
 .claude/
 CLAUDE.md
