@@ -115,6 +115,113 @@
     }
   });
 
+  /* Case details. When someone describes their problem (forms that post to /r/ask or /r/chat), pick out the few facts a
+     later letter needs (their own name, phone and email, the other party, the bank, a transaction id, an IMEI) and keep
+     only those, on this device, for 7 days (localStorage raasta_case). The problem text itself is never stored, and
+     nothing here is sent anywhere. The letter pages (enhance.js) fill empty fields from it. */
+  var CASE_KEY = "raasta_case";
+  var CASE_TTL = 7 * 86400000;
+  var NOT_NAME = /^(Not|No|Very|So|Too|In|At|From|On|The|A|An|Being|Getting|Facing|Living|Working|Unable|Staying|Also|Just|Really|Here|Writing|Asking|Trying|Looking|Owed|Owner|Tenant|Student|Worker|Employee|Customer|Victim|Sorry|Afraid|Scared|Worried|Upset|Tired|Fine|Ok|Okay)$/;
+  var NAME = "([A-Z][A-Za-z.'&-]*(?: (?:[A-Z][A-Za-z.'&-]*|Pvt|Ltd|and|&)){0,3})";
+  var HON_REQ = "(?:Mr|Mrs|Ms|Dr|Smt|Shri|Sri|Shree)\\.? ";
+  var HON = "(?:" + HON_REQ + ")?";
+  // "landlord" also matches "Landlord" at the start of a sentence, while names stay case sensitive.
+  function anyCase(alts) {
+    return alts.replace(/(^|\|)([a-z])/g, function (_m, bar, ch) {
+      return bar + "[" + ch.toUpperCase() + ch + "]";
+    });
+  }
+  var ROLES = [
+    ["owner", "landlord|house owner|flat owner|room owner|owner|makan malik"],
+    ["employer", "employer|boss|manager|supervisor|contractor|principal|head|company|firm|office"],
+    ["builder", "builder|developer|promoter"],
+    ["seller", "seller|shopkeeper|shop|store|dealer|showroom|vendor|merchant"],
+    ["neighbour", "neighbour|neighbor"]
+  ];
+  var BANKS = /\b((?:SBI|HDFC|ICICI|Axis|Kotak|PNB|IDFC First|IndusInd|Canara)(?: Bank)?|Yes Bank|Bank of Baroda|Bank of India|Bank of Maharashtra|Union Bank|Federal Bank|Indian Bank|Central Bank|Paytm Payments Bank|Airtel Payments Bank|[A-Z][A-Za-z]+(?: [A-Z][A-Za-z]+)? Bank)\b/;
+
+  function cleanName(s) {
+    // A full stop after a word ends the sentence ("I am Ravi Kumar. My employer..."), except in "Pvt. Ltd."
+    s = (s || "").replace(/\b([A-Za-z]{3,})\. .*$/, function (m, w) {
+      return /^(Pvt|Ltd|Co)$/.test(w) ? m : w;
+    });
+    s = s.replace(/[\s.,]+$/, "").replace(/ (and|&)$/, "");
+    var first = s.split(" ")[0].replace(/\.$/, "");
+    if (!s || NOT_NAME.test(first) || s.length > 80) return "";
+    return s;
+  }
+
+  function pickDetails(text) {
+    var out = {};
+    if (!text) return out;
+    text = String(text).slice(0, 2000);
+    var m = text.match(/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/);
+    if (m) out.email = m[0];
+    m = text.match(/(?:^|[^\d])(?:\+?91[\s-]?)?([6-9]\d{4})[\s-]?(\d{5})(?!\d)/);
+    if (m) out.phone = m[1] + m[2];
+    m = text.match(new RegExp("(?:[Mm]y name is|[Mm]yself|I am|I'm|i am|i'm|[Nn]ame:)\\s+" + HON + NAME));
+    if (m && cleanName(m[1])) out.name = cleanName(m[1]);
+    if (!out.name) {
+      m = text.match(/(?:mera naam|maza nav|majhe nav|माझे नाव|माझं नाव|मेरा नाम)\s+([^\s,.।]+(?:\s+[^\s,.।]+)?)\s+(?:hai|aahe|है|आहे)/i);
+      if (m) out.name = m[1];
+    }
+    var party = {};
+    for (var r = 0; r < ROLES.length; r++) {
+      var roles = anyCase(ROLES[r][1]);
+      m = text.match(new RegExp("\\b(?:" + roles + ")(?:,| is| was| named| called| name is|:)?\\s+" + HON + NAME));
+      if (m && cleanName(m[1])) party[ROLES[r][0]] = cleanName(m[1]);
+      if (!party[ROLES[r][0]]) {
+        // "Shri Ramesh Patil, my landlord": the name comes first, so it needs a title to be sure it is a person.
+        m = text.match(new RegExp(HON_REQ + NAME + ",? (?:my|our|the) (?:" + ROLES[r][1] + ")\\b"));
+        if (m && cleanName(m[1])) party[ROLES[r][0]] = cleanName(m[1]);
+      }
+      if (party[ROLES[r][0]] && !party.other) party.other = party[ROLES[r][0]];
+    }
+    m = text.match(BANKS);
+    if (m && !/^(My|The|Our|Your|A|Of) /.test(m[1])) party.bank = m[1];
+    m = text.match(/\b(?:UTR|transaction id|transaction no\.?|txn id|txn no\.?|reference no\.?|ref no\.?)[\s:#.-]*([A-Za-z0-9]{8,24})\b/i);
+    if (m && /\d/.test(m[1])) out.txn = m[1];
+    m = text.match(/\bIMEI(?: number| no\.?)?[\s:#.-]*(\d{15})\b/i);
+    if (m) out.imei = m[1];
+    for (var k in party) if (party.hasOwnProperty(k)) out[k] = party[k];
+    return out;
+  }
+  window.raastaPickDetails = pickDetails;
+
+  function readCase() {
+    try {
+      var c = JSON.parse(localStorage.getItem(CASE_KEY) || "null");
+      if (!c || !c.at || Date.now() - c.at > CASE_TTL) {
+        if (c) localStorage.removeItem(CASE_KEY);
+        return {};
+      }
+      return c.d || {};
+    } catch (e) {
+      return {};
+    }
+  }
+  window.raastaReadCase = readCase;
+
+  document.addEventListener("submit", function (e) {
+    var f = e.target;
+    var a = f && f.getAttribute ? f.getAttribute("action") || "" : "";
+    if (a.indexOf("/r/ask") !== 0 && a.indexOf("/r/chat") !== 0) return;
+    var ta = f.querySelector("textarea[name=text], textarea[name=q], input[name=text]");
+    if (!ta || !ta.value) return;
+    var got = pickDetails(ta.value);
+    // A new problem from the home page starts a fresh case; follow-up chat questions add to the current one.
+    var d = a.indexOf("/r/ask") === 0 ? {} : readCase();
+    var keys = 0;
+    for (var j in got) if (got.hasOwnProperty(j)) d[j] = got[j];
+    for (var k in d) if (d.hasOwnProperty(k)) keys++;
+    try {
+      if (keys) localStorage.setItem(CASE_KEY, JSON.stringify({ at: Date.now(), d: d }));
+      else localStorage.removeItem(CASE_KEY);
+    } catch (err) {
+      /* storage blocked: the letter is simply not prefilled */
+    }
+  });
+
   if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", showSaved);
   else showSaved();
 })();

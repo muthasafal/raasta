@@ -263,6 +263,7 @@
   "ui.disclaimer.p4": "Never share an OTP, PIN, password or card number with anyone who asks for it by message or call, including someone who says they are from Raasta.",
   "ui.doc.build": "Make my letter",
   "ui.doc.damage_q": "Was there any damage or money lost? Add it here",
+  "ui.doc.case_note": "Some fields are filled from what you told us. Please check them before you make the letter.",
   "ui.doc.forget": "Forget my saved details",
   "ui.doc.language": "Language of the letter",
   "ui.doc.lead": "Check the details, fix anything that is wrong, and leave blanks you do not know. Raasta never invents a detail.",

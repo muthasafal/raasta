@@ -1,4 +1,5 @@
 import { officesPune, type Platform } from "@raasta/data";
+import { ENHANCE_SRC } from "../lib/enhance";
 import { t, type Locale } from "@raasta/i18n";
 import type { GeoContext, IntakeSlots } from "@raasta/rules/types";
 import { StepList, howtoSteps } from "./route/howto";
@@ -204,7 +205,7 @@ export function GuidePage({ lang, platform: p, token, slots, title, geo, letter 
           </p>
         )}
       </div>
-      <script src="/r/assets/enhance.js" defer></script>
+      <script src={ENHANCE_SRC} defer></script>
     </Layout>
   );
 }

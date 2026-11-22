@@ -1,4 +1,5 @@
 import { disputeById, legalAid, officesPune, platformById, states } from "@raasta/data";
+import { ENHANCE_SRC } from "../../lib/enhance";
 import { DISCLAIMER_EN } from "@raasta/config";
 import { t, type Locale } from "@raasta/i18n";
 import type { LiveTimer } from "@raasta/rules";
@@ -349,7 +350,7 @@ export function ResultPage({ lang, token, result, geo, timers, title, slots, dem
           </a>
         </p>
       </div>
-      <script src="/r/assets/enhance.js" defer></script>
+      <script src={ENHANCE_SRC} defer></script>
     </Layout>
   );
 }

@@ -12,7 +12,7 @@ function ClearDrafts() {
       const keys: string[] = [];
       for (let i = 0; i < window.localStorage.length; i++) {
         const k = window.localStorage.key(i);
-        if (k && k.startsWith("raasta:")) keys.push(k);
+        if (k && (k.startsWith("raasta:") || k.startsWith("raasta_"))) keys.push(k);
       }
       keys.forEach((k) => window.localStorage.removeItem(k));
       setMsg(tt("ui.privacy.cleared"));

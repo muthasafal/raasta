@@ -1,4 +1,5 @@
 import { legalAid, states, type Office } from "@raasta/data";
+import { ENHANCE_SRC } from "../lib/enhance";
 import type { TemplateDef } from "@raasta/docs-gen";
 import { LANG_META, t, type Locale } from "@raasta/i18n";
 import type { RouteResult } from "@raasta/rules/types";
@@ -24,8 +25,25 @@ const PERSONAL = new Set(["user_address", "user_phone", "user_email"]);
 const MONEY = new Set(["amount", "amount_paid", "purchase_cost", "mrp", "charged_price", "unpaid_amount", "deposit_amount"]);
 const MONEY_DISPUTES = new Set(["consumer_refund", "mrp_overcharge", "unpaid_wages", "security_deposit", "banking_nbfc", "insurance_claim", "investment_broker", "builder_delay", "cyber_fraud", "pension_pf"]);
 
+// The person's own details, remembered on their device (never on the server) to prefill the next letter.
+const REMEMBER: Record<string, string> = {
+  applicant_name: "name", borrower_name: "name", buyer_name: "name", complainant_name: "name", customer_name: "name",
+  tenant_name: "name", victim_name: "name", user_name: "name", employee_name: "name", worker_name: "name",
+  user_address: "address", user_phone: "phone", user_email: "email", designation: "job",
+};
+
+// Case details the person wrote in their own words (picked out on their device by locate.js, never sent to us):
+// which detail fills which letter field. Own details (name, phone, email) use the data-remember keys above.
+export const CASE_FIELDS: Record<string, string> = {
+  owner_name: "owner", employer_name: "employer", builder_name: "builder", seller_name: "seller",
+  neighbor_name: "neighbour", opposite_party: "other", accused_name: "other",
+  lender_name: "bank", bank_name: "bank", transaction_id: "txn", imei_numbers: "imei",
+};
+
 function VarField({ lang, v, value }: { lang: Locale; v: Var; value?: string }) {
   const id = `f-${v.id}`;
+  const remember = REMEMBER[v.id] ?? (v.label_en === "Your name" ? "name" : undefined);
+  const fromCase = CASE_FIELDS[v.id];
   const long = v.type === "textarea";
   return (
     <div className={`field${long ? " span-2" : ""}`}>
@@ -34,7 +52,7 @@ function VarField({ lang, v, value }: { lang: Locale; v: Var; value?: string }) 
         {v.required ? null : <span className="tag-optional">{t(lang, "ui.doc.optional")}</span>}
       </label>
       {long ? (
-        <textarea id={id} name={FIELD + v.id} rows={4} maxlength={600}>
+        <textarea id={id} name={FIELD + v.id} rows={4} maxlength={600} data-remember={remember} data-case={fromCase}>
           {value ?? ""}
         </textarea>
       ) : (
@@ -42,6 +60,9 @@ function VarField({ lang, v, value }: { lang: Locale; v: Var; value?: string }) 
           id={id}
           type={v.type === "number" ? "number" : v.type === "date" ? "date" : "text"}
           name={FIELD + v.id}
+          data-remember={remember}
+          data-case={fromCase}
+          autocomplete={remember === "name" ? "name" : remember === "phone" ? "tel" : remember === "email" ? "email" : remember === "address" ? "street-address" : undefined}
           value={value ?? ""}
           maxlength={v.type === "text" ? 160 : undefined}
           {...(v.type === "number" ? { inputmode: "numeric", min: "0", step: "any" } : {})}
@@ -68,9 +89,12 @@ export function DocFormPage({ lang, tpl, values, token, office, dispute, hasAmou
         <div className="q-card q-card-wide">
           <h1 className="q-title">{tpl.title_en}</h1>
           <p className="q-lead">{t(lang, "ui.doc.lead_short")}</p>
-          <form method="post" action={`/r/doc/${tpl.id}`}>
+          <form method="post" action={`/r/doc/${tpl.id}`} data-remember-form="">
             {token ? <input type="hidden" name="t" value={token} /> : null}
             {office ? <input type="hidden" name="office" value={office} /> : null}
+            <p className="q-skip" data-case-note hidden>
+              {t(lang, "ui.doc.case_note")}
+            </p>
             <div className="doc-grid">
               {main.map((v) => (
                 <VarField key={v.id} lang={lang} v={v} value={values[v.id]} />
@@ -122,10 +146,16 @@ export function DocFormPage({ lang, tpl, values, token, office, dispute, hasAmou
                 {t(lang, "ui.doc.build")}
               </button>
             </div>
-            <p className="q-skip">{t(lang, "ui.doc.privacy")}</p>
+            <p className="q-skip">{t(lang, "ui.doc.privacy")} {t(lang, "ui.doc.remember_note")}</p>
+            <p className="q-skip">
+              <button type="button" className="btn btn-ghost" data-forget hidden>
+                {t(lang, "ui.doc.forget")}
+              </button>
+            </p>
           </form>
         </div>
       </div>
+      <script src={ENHANCE_SRC} defer></script>
     </Layout>
   );
 }
@@ -140,7 +170,7 @@ export function LabelPage({ lang, token, office, toName, toAddress }: { lang: Lo
           <p>{t(lang, "ui.label.guidance")}</p>
           <p>{t(lang, "ui.label.article")}</p>
         </section>
-        <form className="stack" method="post" action="/r/label">
+        <form className="stack" method="post" action="/r/label" data-remember-form="">
           {office ? <input type="hidden" name="office" value={office} /> : null}
           {toName ? (
             <p>
@@ -161,15 +191,15 @@ export function LabelPage({ lang, token, office, toName, toAddress }: { lang: Lo
           )}
           <label className="field">
             <span>{t(lang, "ui.label.from_name")}</span>
-            <input name="from_name" maxlength={120} required />
+            <input name="from_name" maxlength={120} required data-remember="name" autocomplete="name" />
           </label>
           <label className="field">
             <span>{t(lang, "ui.label.from_address")}</span>
-            <textarea name="from_address" rows={3} maxlength={400} required></textarea>
+            <textarea name="from_address" rows={3} maxlength={400} required data-remember="address" autocomplete="street-address"></textarea>
           </label>
           <label className="field">
             <span>{t(lang, "ui.label.from_phone")}</span>
-            <input name="from_phone" type="tel" maxlength={20} />
+            <input name="from_phone" type="tel" maxlength={20} data-remember="phone" autocomplete="tel" />
           </label>
           <label className="field">
             <span>{t(lang, "ui.label.format")}</span>
@@ -184,6 +214,7 @@ export function LabelPage({ lang, token, office, toName, toAddress }: { lang: Lo
           </button>
         </form>
       </div>
+      <script src={ENHANCE_SRC} defer></script>
     </Layout>
   );
 }
@@ -317,7 +348,7 @@ export function DirectionsPage({ lang, dest, token, disputeTitle, docs, from, ro
           </p>
         ) : null}
       </div>
-      <script src="/r/assets/enhance.js" defer></script>
+      <script src={ENHANCE_SRC} defer></script>
     </Layout>
   );
 }

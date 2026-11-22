@@ -11,6 +11,7 @@ import { forwardGeocode } from "../geo/forward";
 import { findOffices } from "../geo/offices";
 import { resolveGeo, stateCodeFrom } from "../geo/resolver";
 import { prefillVars } from "../lib/draft";
+import { ENHANCE_JS } from "../lib/enhance";
 import { HttpError, parseCookies, parseForm, parseFormAll } from "../lib/http";
 import { storeDigitSubmission } from "../lib/store";
 import { GuidePage } from "../views/Guide";
@@ -23,24 +24,6 @@ import { renderHtml } from "./pages";
 
 export const tools = new Hono<AppEnv>();
 
-const ENHANCE_JS = `(function(){
-function ready(f){if(document.readyState!=="loading")f();else document.addEventListener("DOMContentLoaded",f)}
-ready(function(){
-document.querySelectorAll("[data-print]").forEach(function(b){b.hidden=false;b.addEventListener("click",function(){window.print()})});
-document.querySelectorAll("[data-copy]").forEach(function(b){
-b.hidden=false;
-b.addEventListener("click",function(){
-var ta=b.parentElement&&b.parentElement.querySelector("textarea");
-if(!ta)return;
-ta.focus();ta.select();
-var done=function(){b.textContent="Copied"};
-if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(ta.value).then(done,function(){try{document.execCommand("copy");done()}catch(e){}})}
-else{try{document.execCommand("copy");done()}catch(e){}}
-});
-});
-});
-})();
-`;
 
 tools.get("/assets/enhance.js", (c) => {
   c.header("content-type", "application/javascript; charset=utf-8");
