@@ -13,6 +13,9 @@ test-results/
 *.log
 qa/ollama-intake-report.json
 qa/browser/test-results.json
+
+# Private pitch script (not published)
+docs/PITCH_SCRIPT.md
 # Local editor and assistant files
 .claude/
 CLAUDE.md
