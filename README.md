@@ -10,7 +10,7 @@ Describe a problem in plain language, and Raasta identifies:
 2. **The exact office or portal** that handles it, along with fees, expected timing, and documents.
 3. **The next door** to try if the first one does not resolve the matter.
 
-[Open Raasta](https://raasta.safalmutha.in) · [View presentation](https://docs.google.com/presentation/d/1dnuOC1ywQWUNKwZHfftk374Q-fy9hMWIxCEiY3u8N7M/edit?usp=sharing)
+[Open Raasta](https://raasta.safalmutha.in) · [View presentation](https://docs.google.com/presentation/d/1gjLC7LVAvpcu--g7VRy9oKp2w6mmk0qhqNEts9DHrJs/edit?usp=sharing)
 
 ---
 
